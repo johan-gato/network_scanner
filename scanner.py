@@ -1,41 +1,96 @@
 import socket
-import subprocess
-import platform
+import threading
+from tkinter import *
+from tkinter import messagebox
+from tkinter.ttk import Progressbar
+from queue import Queue
 
-def ping(host):
-    param = "-n" if platform.system().lower() == "windows" else "-c"
-    command = ["ping", param, "1", host]
-    return subprocess.call(command, stdout=subprocess.DEVNULL) == 0
-
-def ping_sweep(subred):
-    activos = []
-    for i in range(1, 20):
-        ip = f"{subred}.{i}"
-        if ping(ip):
-            print(f"[+] Host activo: {ip}")
-            activos.append(ip)
-    return activos
-
-def scan_port(host, port):
+# Escaneo de un puerto
+def scan_port(host, port, timeout=0.1):
     try:
         sock = socket.socket()
-        sock.settimeout(1)
-        sock.connect((host, port))
-        return True
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, port))
+        if result == 0:
+            try:
+                sock.send(b"HEAD / HTTP/1.0\r\n\r\n")
+                banner = sock.recv(1024).decode(errors="ignore").strip()
+            except:
+                banner = "Sin banner"
+            finally:
+                sock.close()
+            return port, banner
     except:
-        return False
+        return None
 
-def port_scan(host, ports):
-    abiertos = []
-    for port in ports:
-        if scan_port(host, port):
-            print(f"    - Puerto {port} abierto en {host}")
-            abiertos.append(port)
-    return abiertos
+# Escaneo total con barra
+def port_scan_all(host):
+    resultado_text.insert(END, f"Escaneando todos los puertos de {host}...\n")
+    resultado_text.update()
 
-if __name__ == "__main__":
-    red = "192.168.1"
-    hosts = ping_sweep(red)
-    for host in hosts:
-        port_scan(host, [22, 80, 443])
-#holi
+    total_ports = 65535
+    completados = 0
+    resultados = []
+    cola = Queue()
+
+    for port in range(1, total_ports + 1):
+        cola.put(port)
+
+    def worker():
+        nonlocal completados
+        while not cola.empty():
+            port = cola.get()
+            result = scan_port(host, port)
+            completados += 1
+            progreso = int((completados / total_ports) * 100)
+            barra_progreso["value"] = progreso
+            progreso_label.config(text=f"{progreso}%")
+            ventana.update_idletasks()
+
+            if result:
+                resultados.append(result)
+                resultado_text.insert(END, f"[✓] Puerto {result[0]} abierto: {result[1]}\n")
+                resultado_text.see(END)
+            cola.task_done()
+
+    for _ in range(500):
+        t = threading.Thread(target=worker)
+        t.daemon = True
+        t.start()
+
+    cola.join()
+    resultado_text.insert(END, "\n✅ Escaneo completado.\n")
+    resultado_text.see(END)
+
+def iniciar_escaneo_thread():
+    resultado_text.delete(1.0, END)
+    barra_progreso["value"] = 0
+    progreso_label.config(text="0%")
+    ip = entrada_ip.get().strip()
+    if not ip:
+        messagebox.showwarning("Error", "Debes ingresar una dirección IP.")
+        return
+    t = threading.Thread(target=port_scan_all, args=(ip,))
+    t.start()
+
+# GUI
+ventana = Tk()
+ventana.title("Escáner de Puertos con Progreso")
+ventana.geometry("750x540")
+
+Label(ventana, text="Dirección IP a escanear:").pack(pady=5)
+entrada_ip = Entry(ventana, width=30)
+entrada_ip.pack()
+
+Button(ventana, text="Iniciar Escaneo", command=iniciar_escaneo_thread).pack(pady=10)
+
+barra_progreso = Progressbar(ventana, length=600, mode="determinate")
+barra_progreso.pack(pady=5)
+
+progreso_label = Label(ventana, text="0%")
+progreso_label.pack()
+
+resultado_text = Text(ventana, height=23, width=90)
+resultado_text.pack(pady=10)
+
+ventana.mainloop()
