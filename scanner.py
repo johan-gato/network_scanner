@@ -23,8 +23,7 @@ def ping_host(host):
 
 def ping_sweep(subred, salida_text):
     resultados.clear()
-    salida_text.delete("1.0", END)
-    salida_text.insert(END, f"🔍 Escaneando desde {subred}.1 hasta {subred}.254...\n")
+    salida_text.insert(END, f"\n🔍 Escaneando desde {subred}.1 hasta {subred}.254...\n")
     cola = Queue()
     for i in range(1, 255):
         ip = f"{subred}.{i}"
@@ -60,8 +59,7 @@ def banner_grab(host, port):
 
 def escanear_puertos(host, puertos, salida_text, barra_progreso, progreso_label):
     resultados.clear()
-    salida_text.delete("1.0", END)
-    salida_text.insert(END, f"🔍 Escaneando puertos de {host}...\n")
+    salida_text.insert(END, f"\n🔍 Escaneando puertos de {host}...\n")
     cola = Queue()
 
     total = len(puertos)
@@ -144,16 +142,19 @@ def iniciar_ping(ip_entry, salida_text):
     threading.Thread(target=ping_sweep, args=(ip, salida_text), daemon=True).start()
 
 def guardar_resultado(salida_text):
-    archivo = filedialog.asksaveasfilename(defaultextension=".txt")
+    archivo = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Archivo de texto", "*.txt")])
     if archivo:
-        with open(archivo, "w") as f:
+        with open(archivo, "w", encoding="utf-8") as f:
             f.write(salida_text.get("1.0", END))
-        messagebox.showinfo("Guardado", f"Resultados guardados en {archivo}")
+        messagebox.showinfo("Guardado", f"✅ Resultados guardados en:\n{archivo}")
+
+def limpiar_resultados(salida_text):
+    salida_text.delete("1.0", END)
 
 def main():
     ventana = Tk()
     ventana.title("🛰️ Escáner de Red tipo Nmap - GUI con Progreso")
-    ventana.geometry("770x630")
+    ventana.geometry("770x670")
     ventana.resizable(False, False)
 
     Label(ventana, text="IP/Dominio para escanear puertos:").pack()
@@ -169,6 +170,9 @@ def main():
     progreso_label = Label(ventana, text="0%")
     progreso_label.pack()
 
+    salida = Text(ventana, height=20, width=90)
+    salida.pack(pady=10)
+
     Button(ventana, text="Escanear Puertos", command=lambda: iniciar_escaneo_puertos(ip_entry, puerto_entry, salida, barra_progreso, progreso_label)).pack(pady=5)
 
     Label(ventana, text="Subred para ping sweep (ej. 192.168.1):").pack(pady=(20, 0))
@@ -176,13 +180,10 @@ def main():
     subred_entry.pack()
     Button(ventana, text="Ping Sweep", command=lambda: iniciar_ping(subred_entry, salida)).pack(pady=5)
 
-    salida = Text(ventana, height=20, width=90)
-    salida.pack(pady=10)
-
     Button(ventana, text="Guardar Resultados", command=lambda: guardar_resultado(salida)).pack(pady=5)
+    Button(ventana, text="🧹 Limpiar Resultados", command=lambda: limpiar_resultados(salida)).pack(pady=5)
 
     ventana.mainloop()
 
 if __name__ == "__main__":
     main()
-
