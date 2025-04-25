@@ -11,18 +11,20 @@ resultados = []
 lock = threading.Lock()
 
 def ping_host(host):
-    param = "-n" if platform.system().lower() == "windows" else "-c"
-    comando = ["ping", param, "1", host]
     try:
-        output = subprocess.check_output(comando, stderr=subprocess.DEVNULL).decode()
-        return "ttl" in output.lower()
-    except:
+        param = "-n" if platform.system().lower() == "windows" else "-c"
+        timeout_param = "-w" if platform.system().lower() == "windows" else "-W"
+        comando = ["ping", param, "1", timeout_param, "1", host]
+        result = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"Error al hacer ping a {host}: {e}")
         return False
 
 def ping_sweep(subred, salida_text):
     resultados.clear()
     salida_text.delete("1.0", END)
-    salida_text.insert(END, f"🔍 Escaneando subred {subred}.0/24...\n")
+    salida_text.insert(END, f"🔍 Escaneando desde {subred}.1 hasta {subred}.254...\n")
     cola = Queue()
     for i in range(1, 255):
         ip = f"{subred}.{i}"
@@ -131,9 +133,14 @@ def iniciar_escaneo_puertos(ip_entry, puerto_entry, salida_text, barra_progreso,
 
 def iniciar_ping(ip_entry, salida_text):
     ip = ip_entry.get().strip()
-    if not ip or ip.count(".") != 3:
+    partes = ip.split(".")
+    
+    if len(partes) == 4 and partes[-1] == "0":
+        ip = ".".join(partes[:3])
+    elif len(partes) != 3:
         messagebox.showerror("Error", "Formato de subred inválido. Ejemplo: 192.168.1")
         return
+
     threading.Thread(target=ping_sweep, args=(ip, salida_text), daemon=True).start()
 
 def guardar_resultado(salida_text):
@@ -178,3 +185,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
