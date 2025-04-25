@@ -1,16 +1,24 @@
-# 🔍 Network Scanner
+# 🧠 Network Scanner en Python 🖥️🐍
 
-Escáner de red básico en Python. Permite descubrir hosts activos en una subred, escanear puertos abiertos y realizar banner grabbing.
+Este proyecto permite buscar computadoras conectadas en una red local, escanear sus puertos y detectar servicios básicos.
 
-## Uso
+---
 
-### Escanear subred:
+## 🚀 ¿Qué hace el programa?
+
+- ✅ Detecta computadoras activas (ping sweep)
+- ✅ Escanea puertos abiertos (como si tocara puertas)
+- ✅ Detecta servicios mediante banner grabbing (como SSH, HTTP, etc.)
+- ✅ Muestra los resultados en consola
+- ✅ Puede guardar los resultados en un archivo `.txt`
+
+---
+
+## 🔧 ¿Cómo instalarlo?
+
+1. Tener **Python 3.8 o superior** instalado en el sistema.
+2. Clonar el repositorio (si está en GitHub):
 
 ```bash
-python scanner.py -n 192.168.1
-
-### Escanear Puertos
-python scanner.py -t 192.168.1.10 -p 22,80,443
-
-### Escanear puertos y capturar banners
-python scanner.py -t 192.168.1.10 -p 80,443 -b
+git clone https://github.com/tu_usuario/network_scanner.git
+cd network_scanner
